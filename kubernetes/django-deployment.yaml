@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bidforge
+  namespace: bidforge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bidforge
+  template:
+    metadata:
+      labels:
+        app: bidforge
+    spec:
+      containers:
+        - name: bidforge
+          image: nischaldev31/bidforge:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: bidforge-config
+            - secretRef:
+                name: bidforge-secret

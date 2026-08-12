@@ -1,0 +1,34 @@
+---
+- name: Ensure containerd configuration directory exists
+  ansible.builtin.file:
+    path: /etc/containerd
+    state: directory
+    mode: "0755"
+
+- name: Generate default containerd configuration
+  ansible.builtin.shell:
+    cmd: containerd config default > /etc/containerd/config.toml
+    creates: /etc/containerd/config.toml
+
+- name: Enable containerd CRI plugin
+  ansible.builtin.replace:
+    path: /etc/containerd/config.toml
+    regexp: '^disabled_plugins\s*=\s*\[.*\]$'
+    replace: 'disabled_plugins = []'
+  notify: Restart containerd
+
+- name: Configure containerd systemd cgroup driver
+  ansible.builtin.blockinfile:
+    path: /etc/containerd/config.toml
+    marker: "# {mark} ANSIBLE KUBERNETES CONFIG"
+    insertafter: EOF
+    block: |
+      [plugins.'io.containerd.cri.v1.runtime'.containerd.runtimes.runc.options]
+        SystemdCgroup = true
+  notify: Restart containerd
+
+- name: Ensure containerd is enabled and running
+  ansible.builtin.systemd:
+    name: containerd
+    state: started
+    enabled: true

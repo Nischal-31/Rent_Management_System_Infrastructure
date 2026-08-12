@@ -1,0 +1,10 @@
+---
+- name: Configure BidForge server
+  hosts: kubernetes
+  become: true
+
+  roles:
+    - common
+    - docker
+    - containerd
+    - kubernetes
