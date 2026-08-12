@@ -1,5 +1,5 @@
 ---
-- name: Configure BidForge server
+- name: Configure RMS server
   hosts: kubernetes
   become: true
 
