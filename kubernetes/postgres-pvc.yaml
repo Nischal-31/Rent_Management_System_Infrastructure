@@ -1,11 +1,14 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
+
 metadata:
   name: postgres-pvc
-  namespace: bidforge
+  namespace: rent-management-system
+
 spec:
   accessModes:
     - ReadWriteOnce
+
   resources:
     requests:
       storage: 10Gi

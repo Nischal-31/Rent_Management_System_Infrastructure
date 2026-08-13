@@ -3,7 +3,7 @@
 set -e
 
 # ============================================================
-# BidForge Infrastructure + Kubernetes Deployment
+# Rent Management System Infrastructure + Kubernetes Deployment
 # ============================================================
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -16,11 +16,11 @@ INVENTORY_FILE="$ANSIBLE_DIR/inventory/hosts.ini"
 
 SSH_KEY="$HOME/.ssh/BidForge.pem"
 
-KUBECONFIG_FILE="$ANSIBLE_DIR/bidforge-kubeconfig"
+KUBECONFIG_FILE="$ANSIBLE_DIR/rms-kubeconfig"
 
-K8S_NAMESPACE="bidforge"
-K8S_DEPLOYMENT="bidforge"
-K8S_SERVICE="bidforge-service"
+K8S_NAMESPACE="rent-management-system"
+K8S_DEPLOYMENT="rms-deployment"
+K8S_SERVICE="rms-service"
 
 CALICO_VERSION="v3.28.0"
 
@@ -54,7 +54,7 @@ clear
 
 echo
 echo "============================================================"
-echo "             BIDFORGE AUTOMATED DEPLOYMENT"
+echo "       RENT MANAGEMENT SYSTEM AUTOMATED DEPLOYMENT"
 echo "============================================================"
 echo
 
@@ -80,17 +80,10 @@ log "1. Checking project structure"
 [ -d "$ANSIBLE_DIR" ] || error "Ansible directory not found."
 [ -d "$KUBERNETES_DIR" ] || error "Kubernetes directory not found."
 
-[ -f "$ANSIBLE_DIR/ansible.cfg" ] \
-    || error "ansible.cfg not found."
-
-[ -d "$ANSIBLE_DIR/inventory" ] \
-    || error "Ansible inventory directory not found."
-
-[ -d "$ANSIBLE_DIR/playbooks" ] \
-    || error "Ansible playbooks directory not found."
-
-[ -f "$ANSIBLE_DIR/playbooks/site.yml" ] \
-    || error "Ansible site.yml not found."
+[ -f "$ANSIBLE_DIR/ansible.cfg" ] || error "ansible.cfg not found."
+[ -d "$ANSIBLE_DIR/inventory" ] || error "Ansible inventory directory not found."
+[ -d "$ANSIBLE_DIR/playbooks" ] || error "Ansible playbooks directory not found."
+[ -f "$ANSIBLE_DIR/playbooks/site.yml" ] || error "Ansible site.yml not found."
 
 success "Project structure verified"
 
@@ -119,8 +112,6 @@ if ! command -v ansible >/dev/null 2>&1; then
 
     echo
     echo "[ERROR] Ansible is not installed or not available in PATH."
-    echo
-    echo "You are running this script inside WSL."
     echo
     echo "Install Ansible with:"
     echo
@@ -282,7 +273,7 @@ log "11. Updating Ansible inventory"
 
 cat > "$INVENTORY_FILE" <<EOF
 [kubernetes]
-bidforge-server ansible_host=$INSTANCE_PUBLIC_IP
+rms-server ansible_host=$INSTANCE_PUBLIC_IP
 EOF
 
 echo
@@ -316,15 +307,7 @@ ansible-playbook playbooks/site.yml
 success "Ansible provisioning completed"
 
 # ============================================================
-# 14. Reset Ansible connection
-#
-# Important:
-#
-# If Ansible provisioning adds ubuntu to the docker group,
-# the existing SSH session may not know about the new group.
-#
-# Resetting the connection forces Ansible to establish a
-# completely fresh SSH session.
+# 14. Reset Ansible SSH connection
 # ============================================================
 
 log "14. Resetting Ansible SSH connection"
@@ -334,60 +317,10 @@ ansible kubernetes -m meta -a reset_connection
 success "Ansible connection reset"
 
 # ============================================================
-# 15. Verify Docker
+# 15. Verify containerd
 # ============================================================
 
-log "15. Verifying Docker"
-
-echo
-echo "Docker version:"
-ansible kubernetes -a "docker --version"
-
-echo
-echo "Docker Compose version:"
-ansible kubernetes -a "docker compose version"
-
-echo
-echo "Docker service:"
-ansible kubernetes -a "systemctl is-active docker"
-
-success "Docker service verified"
-
-# ============================================================
-# 16. Verify Docker access for ubuntu
-# ============================================================
-
-log "16. Verifying Docker access for ubuntu user"
-
-echo
-echo "Ubuntu user information:"
-ansible kubernetes -a "id ubuntu"
-
-echo
-echo "Ubuntu groups:"
-ansible kubernetes -a "sudo -u ubuntu -H bash -lc 'id -nG'"
-
-echo
-echo "Testing Docker as ubuntu:"
-ansible kubernetes -a "sudo -u ubuntu -H docker version"
-
-success "Ubuntu Docker group access verified"
-
-# ============================================================
-# 17. Docker hello-world test
-# ============================================================
-
-log "17. Running Docker hello-world test"
-
-ansible kubernetes -a "docker run --rm hello-world"
-
-success "Docker hello-world test successful"
-
-# ============================================================
-# 18. Verify containerd
-# ============================================================
-
-log "18. Verifying containerd"
+log "15. Verifying containerd"
 
 ansible kubernetes -a "containerd --version"
 
@@ -396,10 +329,10 @@ ansible kubernetes -a "systemctl is-active containerd"
 success "Containerd verified"
 
 # ============================================================
-# 19. Verify Kubernetes tools
+# 16. Verify Kubernetes tools
 # ============================================================
 
-log "19. Verifying Kubernetes"
+log "16. Verifying Kubernetes tools"
 
 ansible kubernetes -a "kubeadm version"
 
@@ -410,10 +343,10 @@ ansible kubernetes -a "kubectl version --client"
 success "Kubernetes tools verified"
 
 # ============================================================
-# 20. Initialize Kubernetes cluster
+# 17. Initialize Kubernetes cluster
 # ============================================================
 
-log "20. Initializing Kubernetes cluster"
+log "17. Initializing Kubernetes cluster"
 
 if ansible kubernetes -b -m shell \
     -a "test -f /etc/kubernetes/admin.conf" \
@@ -436,10 +369,10 @@ fi
 success "Kubernetes cluster initialized"
 
 # ============================================================
-# 21. Configure kubeconfig on EC2
+# 18. Configure kubeconfig on EC2
 # ============================================================
 
-log "21. Configuring kubeconfig on EC2"
+log "18. Configuring kubeconfig on EC2"
 
 ansible kubernetes -b -a \
     "mkdir -p /home/ubuntu/.kube"
@@ -453,10 +386,10 @@ ansible kubernetes -b -a \
 success "EC2 kubeconfig configured"
 
 # ============================================================
-# 22. Install Calico
+# 19. Install Calico
 # ============================================================
 
-log "22. Installing Calico"
+log "19. Installing Calico"
 
 ansible kubernetes -b -a \
     "kubectl --kubeconfig=/home/ubuntu/.kube/config apply -f https://raw.githubusercontent.com/projectcalico/calico/$CALICO_VERSION/manifests/calico.yaml"
@@ -464,10 +397,10 @@ ansible kubernetes -b -a \
 success "Calico installed"
 
 # ============================================================
-# 23. Remove control-plane taint
+# 20. Remove control-plane taint
 # ============================================================
 
-log "23. Configuring single-node Kubernetes"
+log "20. Configuring single-node Kubernetes"
 
 ansible kubernetes -a \
     "kubectl --kubeconfig=/home/ubuntu/.kube/config taint nodes --all node-role.kubernetes.io/control-plane-" \
@@ -476,10 +409,10 @@ ansible kubernetes -a \
 success "Single-node Kubernetes configured"
 
 # ============================================================
-# 24. Wait for Kubernetes node
+# 21. Wait for Kubernetes node
 # ============================================================
 
-log "24. Waiting for Kubernetes node"
+log "21. Waiting for Kubernetes node"
 
 ansible kubernetes -a \
     "kubectl --kubeconfig=/home/ubuntu/.kube/config wait --for=condition=Ready node --all --timeout=300s"
@@ -487,10 +420,24 @@ ansible kubernetes -a \
 success "Kubernetes node is Ready"
 
 # ============================================================
-# 25. Copy kubeconfig from EC2
+# 22. Show Kubernetes nodes and pods
 # ============================================================
 
-log "25. Copying kubeconfig from EC2"
+log "22. Checking Kubernetes cluster"
+
+ansible kubernetes -a \
+    "kubectl --kubeconfig=/home/ubuntu/.kube/config get nodes -o wide"
+
+ansible kubernetes -a \
+    "kubectl --kubeconfig=/home/ubuntu/.kube/config get pods -A"
+
+success "Kubernetes cluster verified"
+
+# ============================================================
+# 23. Copy kubeconfig from EC2
+# ============================================================
+
+log "23. Copying kubeconfig from EC2"
 
 rm -f "$KUBECONFIG_FILE"
 
@@ -506,58 +453,41 @@ chmod 600 "$KUBECONFIG_FILE"
 success "Kubeconfig copied"
 
 # ============================================================
-# 26. Configure local kubeconfig
-#
-# The kubeconfig generated by kubeadm normally references
-# the EC2 private IP.
-#
-# We replace it with the EC2 public IP so local kubectl can
-# connect from WSL.
-#
-# insecure-skip-tls-verify is used for this project setup.
-# Production should use a proper API server certificate
-# containing the public DNS/IP SAN.
+# 24. Configure local kubeconfig
 # ============================================================
 
-log "26. Configuring kubeconfig"
+log "24. Configuring local kubeconfig"
 
-sed -i \
-    '/^[[:space:]]*certificate-authority-data:/d' \
-    "$KUBECONFIG_FILE"
+# Remove certificate-authority-data
+sed -i '/certificate-authority-data:/d' "$KUBECONFIG_FILE"
 
-sed -i \
-    '/^[[:space:]]*certificate-authority:/d' \
-    "$KUBECONFIG_FILE"
+# Remove certificate-authority
+sed -i '/certificate-authority:/d' "$KUBECONFIG_FILE"
 
-sed -i \
-    "s#^[[:space:]]*server:.*#    server: https://$INSTANCE_PUBLIC_IP:6443#" \
-    "$KUBECONFIG_FILE"
+# Replace Kubernetes API server address
+sed -i "s|^[[:space:]]*server:.*|    server: https://$INSTANCE_PUBLIC_IP:6443|" "$KUBECONFIG_FILE"
 
-sed -i \
-    '/^[[:space:]]*insecure-skip-tls-verify:/d' \
-    "$KUBECONFIG_FILE"
+# Remove existing insecure-skip-tls-verify entries
+sed -i '/insecure-skip-tls-verify:/d' "$KUBECONFIG_FILE"
 
-sed -i \
-    '/^[[:space:]]*server: https:\/\//a\    insecure-skip-tls-verify: true' \
-    "$KUBECONFIG_FILE"
+# Add insecure TLS setting immediately after server
+sed -i "/server: https:\/\/$INSTANCE_PUBLIC_IP:6443/a\\    insecure-skip-tls-verify: true" "$KUBECONFIG_FILE"
 
 echo
 echo "Kubernetes cluster configuration:"
 echo "------------------------------------------------------------"
 
-grep -A4 \
-    "server: https://$INSTANCE_PUBLIC_IP:6443" \
-    "$KUBECONFIG_FILE" || true
+grep -A5 "server: https://$INSTANCE_PUBLIC_IP:6443" "$KUBECONFIG_FILE" || true
 
 echo "------------------------------------------------------------"
 
 success "Kubeconfig configured"
 
 # ============================================================
-# 27. Configure local kubectl
+# 25. Configure local kubectl
 # ============================================================
 
-log "27. Configuring local kubectl"
+log "25. Configuring local kubectl"
 
 mkdir -p "$HOME/.kube"
 
@@ -570,54 +500,68 @@ unset KUBECONFIG
 success "Local kubeconfig installed"
 
 # ============================================================
-# 28. Test kubectl
+# 26. Test kubectl
 # ============================================================
 
-log "28. Testing Kubernetes connection"
+log "26. Testing Kubernetes connection"
 
 kubectl get nodes -o wide
 
 success "kubectl successfully connected to Kubernetes"
 
 # ============================================================
-# 29. Create BidForge namespace
+# 27. Create RMS namespace
 # ============================================================
 
-log "29. Creating BidForge namespace"
+log "27. Creating RMS namespace"
 
 kubectl create namespace "$K8S_NAMESPACE" \
     --dry-run=client \
     -o yaml | kubectl apply -f -
 
-success "BidForge namespace ready"
+success "RMS namespace ready"
 
 # ============================================================
-# 30. Validate Kubernetes manifests
+# 28. Validate Kubernetes manifests
 # ============================================================
 
-log "30. Validating Kubernetes manifests"
+log "28. Validating Kubernetes manifests"
 
 cd "$KUBERNETES_DIR"
 
-kubectl apply --dry-run=client -f .
+kubectl apply \
+    --dry-run=client \
+    -f .
 
 success "Kubernetes manifests validated"
 
 # ============================================================
-# 31. Deploy Kubernetes manifests
+# 29. Deploy Kubernetes manifests
 # ============================================================
 
-log "31. Deploying BidForge"
+log "29. Deploying Rent Management System"
 
 kubectl apply -f .
 
-success "BidForge manifests applied"
+success "RMS Kubernetes manifests applied"
 
 # ============================================================
-# 32. Wait for PostgreSQL
+# 30. Show RMS pods
 # ============================================================
 
-log "32. Waiting for PostgreSQL"
+log "30. Checking RMS pods"
+
+kubectl get pods \
+    -n "$K8S_NAMESPACE" \
+    -o wide
+
+success "RMS pods created"
+
+# ============================================================
+# 31. Wait for PostgreSQL
+# ============================================================
+
+log "31. Waiting for PostgreSQL"
 
 kubectl wait \
     --for=condition=Ready \
@@ -629,10 +573,10 @@ kubectl wait \
 success "PostgreSQL pod is Ready"
 
 # ============================================================
-# 33. Verify PostgreSQL connectivity
+# 32. Verify PostgreSQL connectivity
 # ============================================================
 
-log "33. Verifying PostgreSQL connectivity"
+log "32. Verifying PostgreSQL connectivity"
 
 POSTGRES_READY=false
 
@@ -692,36 +636,85 @@ fi
 success "PostgreSQL is accepting connections"
 
 # ============================================================
-# 34. Wait for BidForge deployment
+# 33. Wait for RMS deployment
 # ============================================================
 
-log "34. Waiting for BidForge deployment"
+log "33. Waiting for RMS deployment"
 
 kubectl rollout status \
     deployment/"$K8S_DEPLOYMENT" \
     -n "$K8S_NAMESPACE" \
     --timeout=300s
 
-success "BidForge rollout successful"
+success "RMS rollout successful"
 
 # ============================================================
-# 35. Verify BidForge -> PostgreSQL connectivity
+# 34. Check RMS environment variables
 # ============================================================
 
-log "35. Verifying BidForge database connectivity"
+log "34. Checking RMS environment"
+
+echo
+echo "DATABASE_URL:"
+
+kubectl exec \
+    -n "$K8S_NAMESPACE" \
+    deployment/"$K8S_DEPLOYMENT" \
+    -- printenv DATABASE_URL || true
+
+echo
+echo "DEBUG:"
+
+kubectl exec \
+    -n "$K8S_NAMESPACE" \
+    deployment/"$K8S_DEPLOYMENT" \
+    -- printenv DEBUG || true
+
+echo
+echo "ALLOWED_HOSTS:"
+
+kubectl exec \
+    -n "$K8S_NAMESPACE" \
+    deployment/"$K8S_DEPLOYMENT" \
+    -- python -c \
+    "from django.conf import settings; print(settings.ALLOWED_HOSTS)" || true
+
+success "RMS environment checked"
+
+# ============================================================
+# 35. Update ALLOWED_HOSTS with current EC2 IP
+# ============================================================
+
+log "35. Verifying current EC2 host"
+
+echo
+echo "Current EC2 public IP:"
+echo "  $INSTANCE_PUBLIC_IP"
+
+echo
+echo "Django must allow:"
+echo "  $INSTANCE_PUBLIC_IP"
+
+success "Current EC2 host identified"
+
+# ============================================================
+# 36. Verify RMS database connectivity
+# ============================================================
+
+log "36. Verifying RMS database connectivity"
 
 kubectl exec \
     -n "$K8S_NAMESPACE" \
     deployment/"$K8S_DEPLOYMENT" \
     -- python manage.py check --database default
 
-success "BidForge database connection verified"
+success "RMS database connection verified"
 
 # ============================================================
-# 36. Run Django migrations
+# 37. Run Django migrations
 # ============================================================
 
-log "36. Running Django migrations"
+log "37. Running Django migrations"
 
 kubectl exec \
     -n "$K8S_NAMESPACE" \
@@ -731,10 +724,10 @@ kubectl exec \
 success "Django migrations completed"
 
 # ============================================================
-# 37. Restart BidForge
+# 38. Restart RMS after migrations
 # ============================================================
 
-log "37. Restarting BidForge"
+log "38. Restarting RMS"
 
 kubectl rollout restart \
     deployment/"$K8S_DEPLOYMENT" \
@@ -745,13 +738,13 @@ kubectl rollout status \
     -n "$K8S_NAMESPACE" \
     --timeout=300s
 
-success "BidForge restarted"
+success "RMS restarted"
 
 # ============================================================
-# 38. Check BidForge endpoints
+# 38. Check RMS endpoints
 # ============================================================
 
-log "38. Checking BidForge endpoints"
+log "38. Checking RMS endpoints"
 
 kubectl get endpoints \
     "$K8S_SERVICE" \
@@ -765,22 +758,195 @@ log "39. Detecting NodePort"
 
 NODE_PORT="$(
     kubectl get service "$K8S_SERVICE" \
-        -n "$K8S_NAMESPACE" \
-        -o jsonpath='{.spec.ports[0].nodePort}'
+    -n "$K8S_NAMESPACE" \
+    -o jsonpath='{.spec.ports[0].nodePort}'
 )"
 
 [ -n "$NODE_PORT" ] \
-    || error "Could not determine BidForge NodePort."
+    || error "Could not determine RMS NodePort."
 
 echo
-echo "BidForge NodePort:"
+echo "RMS NodePort:"
 echo "  $NODE_PORT"
 
 # ============================================================
-# 40. Final Kubernetes status
+# 40. Configure dynamic Django hosts
 # ============================================================
 
-log "40. Final Kubernetes status"
+log "40. Configuring dynamic Django hosts"
+
+PUBLIC_URL="http://$INSTANCE_PUBLIC_IP:$NODE_PORT"
+
+echo
+echo "Current EC2 public IP:"
+echo "  $INSTANCE_PUBLIC_IP"
+
+echo
+echo "Current NodePort:"
+echo "  $NODE_PORT"
+
+echo
+echo "Public application URL:"
+echo "  $PUBLIC_URL"
+
+# ------------------------------------------------------------
+# Build ALLOWED_HOSTS
+# ------------------------------------------------------------
+
+ALLOWED_HOSTS_VALUE="\
+$INSTANCE_PUBLIC_IP,\
+localhost,\
+127.0.0.1,\
+rent-management-system-1wyn.onrender.com,\
+www.bikashgosain.com.np,\
+bikashgosain.com.np,\
+.onrender.com"
+
+# ------------------------------------------------------------
+# Build CSRF_TRUSTED_ORIGINS
+# ------------------------------------------------------------
+
+CSRF_TRUSTED_ORIGINS_VALUE="\
+http://$INSTANCE_PUBLIC_IP:$NODE_PORT,\
+http://$INSTANCE_PUBLIC_IP,\
+https://rent-management-system-1wyn.onrender.com,\
+https://www.bikashgosain.com.np,\
+https://bikashgosain.com.np"
+
+echo
+echo "ALLOWED_HOSTS:"
+echo "  $ALLOWED_HOSTS_VALUE"
+
+echo
+echo "CSRF_TRUSTED_ORIGINS:"
+echo "  $CSRF_TRUSTED_ORIGINS_VALUE"
+
+# ------------------------------------------------------------
+# Update ConfigMap
+# ------------------------------------------------------------
+
+kubectl create configmap rms-config \
+    -n "$K8S_NAMESPACE" \
+    --from-literal="ALLOWED_HOSTS=$ALLOWED_HOSTS_VALUE" \
+    --from-literal="CSRF_TRUSTED_ORIGINS=$CSRF_TRUSTED_ORIGINS_VALUE" \
+    --from-literal="DEBUG=False" \
+    --from-literal="DJANGO_ALLOWED_HOSTS=$INSTANCE_PUBLIC_IP localhost 127.0.0.1" \
+    --from-literal="EMAIL_HOST_USER=bikashgosain0@gmail.com" \
+    --from-literal="GOOGLE_CLIENT_ID=14664610456-a9sa2e5taevfrq43agip779713r8rafv.apps.googleusercontent.com" \
+    --from-literal="TWILIO_PHONE_NUMBER=+1234567890" \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+
+success "Dynamic Django host configuration applied"
+
+# ============================================================
+# 41. Restart RMS to load ConfigMap
+# ============================================================
+
+log "41. Restarting RMS with updated environment"
+
+kubectl rollout restart \
+    deployment/"$K8S_DEPLOYMENT" \
+    -n "$K8S_NAMESPACE"
+
+kubectl rollout status \
+    deployment/"$K8S_DEPLOYMENT" \
+    -n "$K8S_NAMESPACE" \
+    --timeout=300s
+
+success "RMS restarted with updated Django configuration"
+
+# ============================================================
+# 42. Verify Django environment
+# ============================================================
+
+log "42. Verifying Django environment"
+
+echo
+echo "ALLOWED_HOSTS:"
+kubectl exec \
+    -n "$K8S_NAMESPACE" \
+    deployment/"$K8S_DEPLOYMENT" \
+    -- printenv ALLOWED_HOSTS || true
+
+echo
+echo "CSRF_TRUSTED_ORIGINS:"
+kubectl exec \
+    -n "$K8S_NAMESPACE" \
+    deployment/"$K8S_DEPLOYMENT" \
+    -- printenv CSRF_TRUSTED_ORIGINS || true
+
+echo
+echo "DEBUG:"
+kubectl exec \
+    -n "$K8S_NAMESPACE" \
+    deployment/"$K8S_DEPLOYMENT" \
+    -- printenv DEBUG || true
+
+echo
+echo "Django resolved ALLOWED_HOSTS:"
+kubectl exec \
+    -n "$K8S_NAMESPACE" \
+    deployment/"$K8S_DEPLOYMENT" \
+    -- python -c \
+    "from django.conf import settings; print(settings.ALLOWED_HOSTS)"
+
+success "Django environment verified"
+
+# ============================================================
+# 43. Verify RMS database connectivity
+# ============================================================
+
+log "43. Verifying RMS database connectivity"
+
+kubectl exec \
+    -n "$K8S_NAMESPACE" \
+    deployment/"$K8S_DEPLOYMENT" \
+    -- python manage.py check --database default
+
+success "RMS database connection verified"
+
+# ============================================================
+# 44. Run Django migrations
+# ============================================================
+
+log "44. Running Django migrations"
+
+kubectl exec \
+    -n "$K8S_NAMESPACE" \
+    deployment/"$K8S_DEPLOYMENT" \
+    -- python manage.py migrate --noinput
+
+success "Django migrations completed"
+
+# ============================================================
+# 45. Create default Django superuser
+# ============================================================
+
+log "45. Creating default Django superuser"
+
+kubectl exec \
+    -n "$K8S_NAMESPACE" \
+    deployment/"$K8S_DEPLOYMENT" \
+    -- python manage.py create_superuser_default
+
+success "Default Django superuser created/verified"
+
+# ============================================================
+# 46. Check RMS endpoints
+# ============================================================
+
+log "46. Checking RMS endpoints"
+
+kubectl get endpoints \
+    "$K8S_SERVICE" \
+    -n "$K8S_NAMESPACE"
+
+# ============================================================
+# 47. Final Kubernetes status
+# ============================================================
+
+log "47. Final Kubernetes status"
 
 echo
 echo "NODES"
@@ -818,57 +984,62 @@ kubectl get deployments \
     -n "$K8S_NAMESPACE"
 
 # ============================================================
-# 41. Test BidForge application
+# 48. Test RMS application
 # ============================================================
 
-log "41. Testing BidForge application"
-
-PUBLIC_URL="http://$INSTANCE_PUBLIC_IP:$NODE_PORT"
+log "48. Testing RMS application"
 
 echo
 echo "Testing:"
 echo "  $PUBLIC_URL"
 echo
 
-if curl \
-    --connect-timeout 10 \
-    --max-time 30 \
-    -f \
-    "$PUBLIC_URL" \
-    >/dev/null 2>&1; then
+HTTP_STATUS="$(
+    curl \
+        --connect-timeout 10 \
+        --max-time 30 \
+        -s \
+        -o /dev/null \
+        -w "%{http_code}" \
+        "$PUBLIC_URL" \
+        || echo "000"
+)"
 
-    success "BidForge is responding"
+echo
+echo "HTTP Status:"
+echo "  $HTTP_STATUS"
+
+if [ "$HTTP_STATUS" = "200" ]; then
+
+    success "RMS is responding with HTTP 200"
 
 else
 
     echo
-    echo "[WARNING] BidForge HTTP test failed."
-    echo
-    echo "The Kubernetes deployment completed, but the application"
-    echo "did not respond to the HTTP request."
+    echo "[WARNING] RMS returned HTTP $HTTP_STATUS"
     echo
     echo "Useful debugging commands:"
     echo
-    echo "  kubectl get pods -n $K8S_NAMESPACE"
-    echo
     echo "  kubectl logs deployment/$K8S_DEPLOYMENT -n $K8S_NAMESPACE"
     echo
-    echo "  kubectl describe deployment/$K8S_DEPLOYMENT -n $K8S_NAMESPACE"
+    echo "  kubectl logs deployment/$K8S_DEPLOYMENT -n $K8S_NAMESPACE --tail=100"
+    echo
+    echo "  kubectl get pods -n $K8S_NAMESPACE -o wide"
     echo
     echo "  kubectl get service $K8S_SERVICE -n $K8S_NAMESPACE"
     echo
     echo "  kubectl get endpoints $K8S_SERVICE -n $K8S_NAMESPACE"
-
+    echo
 fi
 
 # ============================================================
-# 42. Final result
+# 49. Final result
 # ============================================================
 
 echo
 echo
 echo "============================================================"
-echo "          BIDFORGE DEPLOYMENT COMPLETED"
+echo "       RENT MANAGEMENT SYSTEM DEPLOYMENT COMPLETED"
 echo "============================================================"
 echo
 
@@ -887,7 +1058,7 @@ echo "Service     : $K8S_SERVICE"
 echo "NodePort    : $NODE_PORT"
 echo
 
-echo "BidForge"
+echo "Rent Management System"
 echo "------------------------------------------------------------"
 echo "URL:"
 echo
@@ -899,6 +1070,29 @@ echo "  $KUBECONFIG_FILE"
 echo
 
 echo "============================================================"
-echo "              DEPLOYMENT SUCCESSFUL"
+echo "             DEPLOYMENT SUCCESSFUL"
+echo "============================================================"
+
+# ============================================================
+# 50. Live RMS application logs
+# ============================================================
+
+echo
+echo
+echo "============================================================"
+echo "                 LIVE RMS APPLICATION LOGS"
 echo "============================================================"
 echo
+echo "Starting live logs for:"
+echo "  deployment/$K8S_DEPLOYMENT"
+echo
+echo "Press Ctrl+C to stop watching logs."
+echo
+echo "============================================================"
+echo
+
+kubectl logs \
+    -n "$K8S_NAMESPACE" \
+    deployment/"$K8S_DEPLOYMENT" \
+    --tail=100 \
+    -f

@@ -1,9 +1,21 @@
 apiVersion: v1
 kind: ConfigMap
+
 metadata:
-  name: bidforge-config
-  namespace: bidforge
+  name: rms-config
+  namespace: rent-management-system
+
 data:
   DEBUG: "True"
-  ALLOWED_HOSTS: "*"
-  CSRF_TRUSTED_ORIGINS: "http://*"
+
+  ALLOWED_HOSTS: "rent-management-system-1wyn.onrender.com,www.bikashgosain.com.np,bikashgosain.com.np,.onrender.com,127.0.0.1,localhost"
+
+  DJANGO_ALLOWED_HOSTS: "127.0.0.1 localhost"
+
+  CSRF_TRUSTED_ORIGINS: "https://rent-management-system-1wyn.onrender.com,https://www.bikashgosain.com.np,https://bikashgosain.com.np"
+
+  EMAIL_HOST_USER: "bikashgosain0@gmail.com"
+
+  GOOGLE_CLIENT_ID: "14664610456-a9sa2e5taevfrq43agip779713r8rafv.apps.googleusercontent.com"
+
+  TWILIO_PHONE_NUMBER: "+1234567890"
