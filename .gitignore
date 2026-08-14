@@ -10,3 +10,13 @@ terraform.tfvars
 # SSH private keys
 *.pem
 *.key
+
+# Kubernetes secret templates
+kubernetes/*secret.yaml
+kubernetes/*secret.yml
+
+# Environment files
+.env
+*.env
+
+Cred.txt

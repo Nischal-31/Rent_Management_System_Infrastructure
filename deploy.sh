@@ -3,7 +3,8 @@
 set -e
 
 # ============================================================
-# Rent Management System Infrastructure + Kubernetes Deployment
+# Rent Management System
+# Infrastructure + Kubernetes Automated Deployment
 # ============================================================
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -47,7 +48,7 @@ error() {
 }
 
 # ============================================================
-# Project information
+# 1. Project information
 # ============================================================
 
 clear
@@ -71,7 +72,7 @@ echo "Kubernetes:"
 echo "  $KUBERNETES_DIR"
 
 # ============================================================
-# 1. Check project structure
+# 2. Check project structure
 # ============================================================
 
 log "1. Checking project structure"
@@ -88,7 +89,7 @@ log "1. Checking project structure"
 success "Project structure verified"
 
 # ============================================================
-# 2. Check required commands
+# 3. Check required commands
 # ============================================================
 
 log "2. Checking required commands"
@@ -107,6 +108,9 @@ command -v scp >/dev/null 2>&1 \
 
 command -v curl >/dev/null 2>&1 \
     || error "curl is not installed."
+
+command -v base64 >/dev/null 2>&1 \
+    || error "base64 is not installed."
 
 if ! command -v ansible >/dev/null 2>&1; then
 
@@ -129,7 +133,7 @@ fi
 success "Required commands found"
 
 # ============================================================
-# 3. Check SSH key
+# 4. Check SSH key
 # ============================================================
 
 log "3. Checking SSH key"
@@ -145,7 +149,7 @@ echo "  $SSH_KEY"
 success "SSH key found"
 
 # ============================================================
-# 4. Initialize Terraform
+# 5. Initialize Terraform
 # ============================================================
 
 log "4. Initializing Terraform"
@@ -157,7 +161,7 @@ terraform init
 success "Terraform initialized"
 
 # ============================================================
-# 5. Format Terraform
+# 6. Format Terraform
 # ============================================================
 
 log "5. Formatting Terraform"
@@ -167,7 +171,7 @@ terraform fmt
 success "Terraform formatted"
 
 # ============================================================
-# 6. Validate Terraform
+# 7. Validate Terraform
 # ============================================================
 
 log "6. Validating Terraform"
@@ -177,7 +181,7 @@ terraform validate
 success "Terraform configuration is valid"
 
 # ============================================================
-# 7. Terraform plan
+# 8. Terraform plan
 # ============================================================
 
 log "7. Creating Terraform plan"
@@ -185,7 +189,7 @@ log "7. Creating Terraform plan"
 terraform plan
 
 # ============================================================
-# 8. Terraform apply
+# 9. Terraform apply
 # ============================================================
 
 log "8. Applying Terraform infrastructure"
@@ -195,7 +199,7 @@ terraform apply -auto-approve
 success "Terraform infrastructure applied"
 
 # ============================================================
-# 9. Get Terraform outputs
+# 10. Get Terraform outputs
 # ============================================================
 
 log "9. Reading Terraform outputs"
@@ -232,7 +236,7 @@ echo "  $INSTANCE_PUBLIC_DNS"
 success "Terraform outputs retrieved"
 
 # ============================================================
-# 10. Wait for EC2 SSH
+# 11. Wait for EC2 SSH
 # ============================================================
 
 log "10. Waiting for EC2 SSH"
@@ -266,7 +270,7 @@ fi
 success "EC2 SSH is ready"
 
 # ============================================================
-# 11. Update Ansible inventory
+# 12. Update Ansible inventory
 # ============================================================
 
 log "11. Updating Ansible inventory"
@@ -285,7 +289,7 @@ echo "------------------------------------------------------------"
 success "Ansible inventory updated"
 
 # ============================================================
-# 12. Test Ansible connection
+# 13. Test Ansible connection
 # ============================================================
 
 log "12. Testing Ansible connection"
@@ -297,7 +301,7 @@ ansible -i inventory/hosts.ini kubernetes -m ping
 success "Ansible connection successful"
 
 # ============================================================
-# 13. Run Ansible provisioning
+# 14. Run Ansible provisioning
 # ============================================================
 
 log "13. Running Ansible provisioning"
@@ -307,7 +311,7 @@ ansible-playbook playbooks/site.yml
 success "Ansible provisioning completed"
 
 # ============================================================
-# 14. Reset Ansible SSH connection
+# 15. Reset Ansible connection
 # ============================================================
 
 log "14. Resetting Ansible SSH connection"
@@ -317,7 +321,7 @@ ansible kubernetes -m meta -a reset_connection
 success "Ansible connection reset"
 
 # ============================================================
-# 15. Verify containerd
+# 16. Verify containerd
 # ============================================================
 
 log "15. Verifying containerd"
@@ -329,7 +333,7 @@ ansible kubernetes -a "systemctl is-active containerd"
 success "Containerd verified"
 
 # ============================================================
-# 16. Verify Kubernetes tools
+# 17. Verify Kubernetes tools
 # ============================================================
 
 log "16. Verifying Kubernetes tools"
@@ -343,7 +347,7 @@ ansible kubernetes -a "kubectl version --client"
 success "Kubernetes tools verified"
 
 # ============================================================
-# 17. Initialize Kubernetes cluster
+# 18. Initialize Kubernetes cluster
 # ============================================================
 
 log "17. Initializing Kubernetes cluster"
@@ -369,7 +373,7 @@ fi
 success "Kubernetes cluster initialized"
 
 # ============================================================
-# 18. Configure kubeconfig on EC2
+# 19. Configure kubeconfig on EC2
 # ============================================================
 
 log "18. Configuring kubeconfig on EC2"
@@ -386,7 +390,7 @@ ansible kubernetes -b -a \
 success "EC2 kubeconfig configured"
 
 # ============================================================
-# 19. Install Calico
+# 20. Install Calico
 # ============================================================
 
 log "19. Installing Calico"
@@ -397,7 +401,7 @@ ansible kubernetes -b -a \
 success "Calico installed"
 
 # ============================================================
-# 20. Remove control-plane taint
+# 21. Remove control-plane taint
 # ============================================================
 
 log "20. Configuring single-node Kubernetes"
@@ -409,7 +413,7 @@ ansible kubernetes -a \
 success "Single-node Kubernetes configured"
 
 # ============================================================
-# 21. Wait for Kubernetes node
+# 22. Wait for Kubernetes node
 # ============================================================
 
 log "21. Waiting for Kubernetes node"
@@ -420,7 +424,7 @@ ansible kubernetes -a \
 success "Kubernetes node is Ready"
 
 # ============================================================
-# 22. Show Kubernetes nodes and pods
+# 23. Show cluster
 # ============================================================
 
 log "22. Checking Kubernetes cluster"
@@ -434,7 +438,7 @@ ansible kubernetes -a \
 success "Kubernetes cluster verified"
 
 # ============================================================
-# 23. Copy kubeconfig from EC2
+# 24. Copy kubeconfig from EC2
 # ============================================================
 
 log "23. Copying kubeconfig from EC2"
@@ -453,38 +457,34 @@ chmod 600 "$KUBECONFIG_FILE"
 success "Kubeconfig copied"
 
 # ============================================================
-# 24. Configure local kubeconfig
+# 25. Configure local kubeconfig
 # ============================================================
 
 log "24. Configuring local kubeconfig"
 
-# Remove certificate-authority-data
 sed -i '/certificate-authority-data:/d' "$KUBECONFIG_FILE"
 
-# Remove certificate-authority
 sed -i '/certificate-authority:/d' "$KUBECONFIG_FILE"
 
-# Replace Kubernetes API server address
 sed -i "s|^[[:space:]]*server:.*|    server: https://$INSTANCE_PUBLIC_IP:6443|" "$KUBECONFIG_FILE"
 
-# Remove existing insecure-skip-tls-verify entries
 sed -i '/insecure-skip-tls-verify:/d' "$KUBECONFIG_FILE"
 
-# Add insecure TLS setting immediately after server
 sed -i "/server: https:\/\/$INSTANCE_PUBLIC_IP:6443/a\\    insecure-skip-tls-verify: true" "$KUBECONFIG_FILE"
 
 echo
 echo "Kubernetes cluster configuration:"
 echo "------------------------------------------------------------"
 
-grep -A5 "server: https://$INSTANCE_PUBLIC_IP:6443" "$KUBECONFIG_FILE" || true
+grep -A5 "server: https://$INSTANCE_PUBLIC_IP:6443" \
+    "$KUBECONFIG_FILE" || true
 
 echo "------------------------------------------------------------"
 
 success "Kubeconfig configured"
 
 # ============================================================
-# 25. Configure local kubectl
+# 26. Configure local kubectl
 # ============================================================
 
 log "25. Configuring local kubectl"
@@ -500,7 +500,7 @@ unset KUBECONFIG
 success "Local kubeconfig installed"
 
 # ============================================================
-# 26. Test kubectl
+# 27. Test kubectl
 # ============================================================
 
 log "26. Testing Kubernetes connection"
@@ -510,7 +510,7 @@ kubectl get nodes -o wide
 success "kubectl successfully connected to Kubernetes"
 
 # ============================================================
-# 27. Create RMS namespace
+# 28. Create namespace
 # ============================================================
 
 log "27. Creating RMS namespace"
@@ -522,34 +522,258 @@ kubectl create namespace "$K8S_NAMESPACE" \
 success "RMS namespace ready"
 
 # ============================================================
-# 28. Validate Kubernetes manifests
+# 29. Collect deployment secrets
 # ============================================================
 
-log "28. Validating Kubernetes manifests"
+log "28. Collecting deployment secrets"
+
+echo
+echo "============================================================"
+echo "              DATABASE CONFIGURATION"
+echo "============================================================"
+echo
+
+read -rp "PostgreSQL database name [rms_db]: " POSTGRES_DB
+POSTGRES_DB="${POSTGRES_DB:-rms_db}"
+
+read -rp "PostgreSQL username [admin]: " POSTGRES_USER
+POSTGRES_USER="${POSTGRES_USER:-admin}"
+
+read -rsp "PostgreSQL password [rmspass]: " POSTGRES_PASSWORD
+echo
+
+if [ -z "$POSTGRES_PASSWORD" ]; then
+    POSTGRES_PASSWORD="rmspass"
+fi
+
+echo
+echo "============================================================"
+echo "              DJANGO CONFIGURATION"
+echo "============================================================"
+echo
+
+read -rsp "Django SECRET_KEY: " SECRET_KEY
+echo
+
+[ -n "$SECRET_KEY" ] || error "Django SECRET_KEY cannot be empty."
+
+echo
+echo "============================================================"
+echo "              EMAIL CONFIGURATION"
+echo "============================================================"
+echo
+
+read -rp "Email host user [dev.brain08@gmail.com]: " EMAIL_HOST_USER
+EMAIL_HOST_USER="${EMAIL_HOST_USER:-dev.brain08@gmail.com}"
+
+read -rsp "Email app password: " EMAIL_HOST_PASSWORD
+echo
+
+[ -n "$EMAIL_HOST_PASSWORD" ] \
+    || error "Email password cannot be empty."
+
+echo
+echo "============================================================"
+echo "              GOOGLE OAUTH CONFIGURATION"
+echo "============================================================"
+echo
+
+read -rp "Google Client ID: " GOOGLE_CLIENT_ID
+
+[ -n "$GOOGLE_CLIENT_ID" ] \
+    || error "Google Client ID cannot be empty."
+
+read -rsp "Google Client Secret: " GOOGLE_SECRET
+echo
+
+[ -n "$GOOGLE_SECRET" ] \
+    || error "Google Client Secret cannot be empty."
+
+echo
+echo "============================================================"
+echo "              TWILIO CONFIGURATION"
+echo "============================================================"
+echo
+
+read -rp "Twilio Account SID: " TWILIO_ACCOUNT_SID
+
+read -rsp "Twilio Auth Token: " TWILIO_AUTH_TOKEN
+echo
+
+read -rp "Twilio Phone Number [+1234567890]: " TWILIO_PHONE_NUMBER
+TWILIO_PHONE_NUMBER="${TWILIO_PHONE_NUMBER:-+1234567890}"
+
+echo
+echo "============================================================"
+echo "              DJANGO SUPERUSER"
+echo "============================================================"
+echo
+
+read -rp "Superuser username [admin]: " SUPERUSER_USERNAME
+SUPERUSER_USERNAME="${SUPERUSER_USERNAME:-admin}"
+
+read -rp "Superuser email [admin1@gmail.com]: " SUPERUSER_EMAIL
+SUPERUSER_EMAIL="${SUPERUSER_EMAIL:-admin1@gmail.com}"
+
+read -rsp "Superuser password: " SUPERUSER_PASSWORD
+echo
+
+[ -n "$SUPERUSER_PASSWORD" ] \
+    || error "Superuser password cannot be empty."
+
+success "Deployment credentials collected"
+
+# ============================================================
+# 30. Build DATABASE_URL
+# ============================================================
+
+log "29. Building database connection"
+
+DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
+
+echo
+echo "Database:"
+echo "  $POSTGRES_DB"
+
+echo
+echo "Database user:"
+echo "  $POSTGRES_USER"
+
+echo
+echo "Database host:"
+echo "  postgres"
+
+echo
+echo "Database port:"
+echo "  5432"
+
+success "DATABASE_URL constructed"
+
+# ============================================================
+# 31. Create PostgreSQL Secret
+# ============================================================
+
+log "30. Creating PostgreSQL Kubernetes Secret"
+
+kubectl create secret generic postgres-secret \
+    -n "$K8S_NAMESPACE" \
+    --from-literal="POSTGRES_DB=$POSTGRES_DB" \
+    --from-literal="POSTGRES_USER=$POSTGRES_USER" \
+    --from-literal="POSTGRES_PASSWORD=$POSTGRES_PASSWORD" \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+
+success "PostgreSQL Secret created/updated"
+
+# ============================================================
+# 32. Create RMS Secret
+# ============================================================
+
+log "31. Creating RMS Kubernetes Secret"
+
+kubectl create secret generic rms-secret \
+    -n "$K8S_NAMESPACE" \
+    --from-literal="SECRET_KEY=$SECRET_KEY" \
+    --from-literal="DATABASE_URL=$DATABASE_URL" \
+    --from-literal="EMAIL_HOST_PASSWORD=$EMAIL_HOST_PASSWORD" \
+    --from-literal="GOOGLE_SECRET=$GOOGLE_SECRET" \
+    --from-literal="TWILIO_ACCOUNT_SID=$TWILIO_ACCOUNT_SID" \
+    --from-literal="TWILIO_AUTH_TOKEN=$TWILIO_AUTH_TOKEN" \
+    --from-literal="SUPERUSER_USERNAME=$SUPERUSER_USERNAME" \
+    --from-literal="SUPERUSER_EMAIL=$SUPERUSER_EMAIL" \
+    --from-literal="SUPERUSER_PASSWORD=$SUPERUSER_PASSWORD" \
+    --dry-run=client \
+    -o yaml | kubectl apply -f -
+
+success "RMS Secret created/updated"
+
+# ============================================================
+# 33. Verify Secret names only
+# ============================================================
+
+log "32. Verifying Kubernetes Secrets"
+
+kubectl get secret \
+    postgres-secret \
+    rms-secret \
+    -n "$K8S_NAMESPACE"
+
+echo
+echo "Secret values are not displayed."
+
+success "Kubernetes Secrets verified"
+
+# ============================================================
+# 34. Validate public Kubernetes manifests
+# ============================================================
+
+log "33. Validating Kubernetes manifests"
 
 cd "$KUBERNETES_DIR"
 
 kubectl apply \
     --dry-run=client \
-    -f .
+    -f namespace.yaml
+
+kubectl apply \
+    --dry-run=client \
+    -f configmap.yaml
+
+kubectl apply \
+    --dry-run=client \
+    -f postgres-pv.yaml
+
+kubectl apply \
+    --dry-run=client \
+    -f postgres-pvc.yaml
+
+kubectl apply \
+    --dry-run=client \
+    -f postgres-deployment.yaml
+
+kubectl apply \
+    --dry-run=client \
+    -f postgres-service.yaml
+
+kubectl apply \
+    --dry-run=client \
+    -f django-deployment.yaml
+
+kubectl apply \
+    --dry-run=client \
+    -f django-service.yaml
 
 success "Kubernetes manifests validated"
 
 # ============================================================
-# 29. Deploy Kubernetes manifests
+# 35. Deploy Kubernetes resources
 # ============================================================
 
-log "29. Deploying Rent Management System"
+log "34. Deploying Rent Management System"
 
-kubectl apply -f .
+kubectl apply -f namespace.yaml
 
-success "RMS Kubernetes manifests applied"
+kubectl apply -f configmap.yaml
+
+kubectl apply -f postgres-pv.yaml
+
+kubectl apply -f postgres-pvc.yaml
+
+kubectl apply -f postgres-deployment.yaml
+
+kubectl apply -f postgres-service.yaml
+
+kubectl apply -f django-deployment.yaml
+
+kubectl apply -f django-service.yaml
+
+success "RMS Kubernetes resources applied"
 
 # ============================================================
-# 30. Show RMS pods
+# 36. Show RMS pods
 # ============================================================
 
-log "30. Checking RMS pods"
+log "35. Checking RMS pods"
 
 kubectl get pods \
     -n "$K8S_NAMESPACE" \
@@ -558,10 +782,10 @@ kubectl get pods \
 success "RMS pods created"
 
 # ============================================================
-# 31. Wait for PostgreSQL
+# 37. Wait for PostgreSQL
 # ============================================================
 
-log "31. Waiting for PostgreSQL"
+log "36. Waiting for PostgreSQL"
 
 kubectl wait \
     --for=condition=Ready \
@@ -573,10 +797,10 @@ kubectl wait \
 success "PostgreSQL pod is Ready"
 
 # ============================================================
-# 32. Verify PostgreSQL connectivity
+# 38. Verify PostgreSQL connectivity
 # ============================================================
 
-log "32. Verifying PostgreSQL connectivity"
+log "37. Verifying PostgreSQL connectivity"
 
 POSTGRES_READY=false
 
@@ -587,7 +811,9 @@ for i in {1..30}; do
     if kubectl exec \
         -n "$K8S_NAMESPACE" \
         deployment/postgres \
-        -- pg_isready -U postgres \
+        -- pg_isready \
+        -U "$POSTGRES_USER" \
+        -d "$POSTGRES_DB" \
         >/dev/null 2>&1; then
 
         POSTGRES_READY=true
@@ -636,10 +862,10 @@ fi
 success "PostgreSQL is accepting connections"
 
 # ============================================================
-# 33. Wait for RMS deployment
+# 39. Wait for RMS deployment
 # ============================================================
 
-log "33. Waiting for RMS deployment"
+log "38. Waiting for RMS deployment"
 
 kubectl rollout status \
     deployment/"$K8S_DEPLOYMENT" \
@@ -649,18 +875,10 @@ kubectl rollout status \
 success "RMS rollout successful"
 
 # ============================================================
-# 34. Check RMS environment variables
+# 40. Check RMS environment
 # ============================================================
 
-log "34. Checking RMS environment"
-
-echo
-echo "DATABASE_URL:"
-
-kubectl exec \
-    -n "$K8S_NAMESPACE" \
-    deployment/"$K8S_DEPLOYMENT" \
-    -- printenv DATABASE_URL || true
+log "39. Checking RMS environment"
 
 echo
 echo "DEBUG:"
@@ -676,32 +894,27 @@ echo "ALLOWED_HOSTS:"
 kubectl exec \
     -n "$K8S_NAMESPACE" \
     deployment/"$K8S_DEPLOYMENT" \
-    -- python -c \
-    "from django.conf import settings; print(settings.ALLOWED_HOSTS)" || true
+    -- printenv ALLOWED_HOSTS || true
 
 success "RMS environment checked"
 
 # ============================================================
-# 35. Update ALLOWED_HOSTS with current EC2 IP
+# 41. Current EC2 host
 # ============================================================
 
-log "35. Verifying current EC2 host"
+log "40. Verifying current EC2 host"
 
 echo
 echo "Current EC2 public IP:"
 echo "  $INSTANCE_PUBLIC_IP"
 
-echo
-echo "Django must allow:"
-echo "  $INSTANCE_PUBLIC_IP"
-
 success "Current EC2 host identified"
 
 # ============================================================
-# 36. Verify RMS database connectivity
+# 42. Verify database connectivity
 # ============================================================
 
-log "36. Verifying RMS database connectivity"
+log "41. Verifying RMS database connectivity"
 
 kubectl exec \
     -n "$K8S_NAMESPACE" \
@@ -711,10 +924,10 @@ kubectl exec \
 success "RMS database connection verified"
 
 # ============================================================
-# 37. Run Django migrations
+# 43. Run migrations
 # ============================================================
 
-log "37. Running Django migrations"
+log "42. Running Django migrations"
 
 kubectl exec \
     -n "$K8S_NAMESPACE" \
@@ -724,10 +937,10 @@ kubectl exec \
 success "Django migrations completed"
 
 # ============================================================
-# 38. Restart RMS after migrations
+# 44. Restart RMS after migrations
 # ============================================================
 
-log "38. Restarting RMS"
+log "43. Restarting RMS"
 
 kubectl rollout restart \
     deployment/"$K8S_DEPLOYMENT" \
@@ -741,25 +954,15 @@ kubectl rollout status \
 success "RMS restarted"
 
 # ============================================================
-# 38. Check RMS endpoints
+# 45. Detect NodePort
 # ============================================================
 
-log "38. Checking RMS endpoints"
-
-kubectl get endpoints \
-    "$K8S_SERVICE" \
-    -n "$K8S_NAMESPACE"
-
-# ============================================================
-# 39. Detect NodePort
-# ============================================================
-
-log "39. Detecting NodePort"
+log "44. Detecting NodePort"
 
 NODE_PORT="$(
     kubectl get service "$K8S_SERVICE" \
-    -n "$K8S_NAMESPACE" \
-    -o jsonpath='{.spec.ports[0].nodePort}'
+        -n "$K8S_NAMESPACE" \
+        -o jsonpath='{.spec.ports[0].nodePort}'
 )"
 
 [ -n "$NODE_PORT" ] \
@@ -770,10 +973,10 @@ echo "RMS NodePort:"
 echo "  $NODE_PORT"
 
 # ============================================================
-# 40. Configure dynamic Django hosts
+# 46. Configure dynamic Django hosts
 # ============================================================
 
-log "40. Configuring dynamic Django hosts"
+log "45. Configuring dynamic Django hosts"
 
 PUBLIC_URL="http://$INSTANCE_PUBLIC_IP:$NODE_PORT"
 
@@ -821,9 +1024,11 @@ echo
 echo "CSRF_TRUSTED_ORIGINS:"
 echo "  $CSRF_TRUSTED_ORIGINS_VALUE"
 
-# ------------------------------------------------------------
-# Update ConfigMap
-# ------------------------------------------------------------
+# ============================================================
+# 47. Update ConfigMap
+# ============================================================
+
+log "46. Updating RMS ConfigMap"
 
 kubectl create configmap rms-config \
     -n "$K8S_NAMESPACE" \
@@ -831,19 +1036,19 @@ kubectl create configmap rms-config \
     --from-literal="CSRF_TRUSTED_ORIGINS=$CSRF_TRUSTED_ORIGINS_VALUE" \
     --from-literal="DEBUG=False" \
     --from-literal="DJANGO_ALLOWED_HOSTS=$INSTANCE_PUBLIC_IP localhost 127.0.0.1" \
-    --from-literal="EMAIL_HOST_USER=bikashgosain0@gmail.com" \
-    --from-literal="GOOGLE_CLIENT_ID=14664610456-a9sa2e5taevfrq43agip779713r8rafv.apps.googleusercontent.com" \
-    --from-literal="TWILIO_PHONE_NUMBER=+1234567890" \
+    --from-literal="EMAIL_HOST_USER=$EMAIL_HOST_USER" \
+    --from-literal="GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" \
+    --from-literal="TWILIO_PHONE_NUMBER=$TWILIO_PHONE_NUMBER" \
     --dry-run=client \
     -o yaml | kubectl apply -f -
 
-success "Dynamic Django host configuration applied"
+success "Dynamic Django configuration applied"
 
 # ============================================================
-# 41. Restart RMS to load ConfigMap
+# 48. Restart RMS with updated ConfigMap
 # ============================================================
 
-log "41. Restarting RMS with updated environment"
+log "47. Restarting RMS with updated environment"
 
 kubectl rollout restart \
     deployment/"$K8S_DEPLOYMENT" \
@@ -857,13 +1062,14 @@ kubectl rollout status \
 success "RMS restarted with updated Django configuration"
 
 # ============================================================
-# 42. Verify Django environment
+# 49. Verify Django environment
 # ============================================================
 
-log "42. Verifying Django environment"
+log "48. Verifying Django environment"
 
 echo
 echo "ALLOWED_HOSTS:"
+
 kubectl exec \
     -n "$K8S_NAMESPACE" \
     deployment/"$K8S_DEPLOYMENT" \
@@ -871,6 +1077,7 @@ kubectl exec \
 
 echo
 echo "CSRF_TRUSTED_ORIGINS:"
+
 kubectl exec \
     -n "$K8S_NAMESPACE" \
     deployment/"$K8S_DEPLOYMENT" \
@@ -878,6 +1085,7 @@ kubectl exec \
 
 echo
 echo "DEBUG:"
+
 kubectl exec \
     -n "$K8S_NAMESPACE" \
     deployment/"$K8S_DEPLOYMENT" \
@@ -885,6 +1093,7 @@ kubectl exec \
 
 echo
 echo "Django resolved ALLOWED_HOSTS:"
+
 kubectl exec \
     -n "$K8S_NAMESPACE" \
     deployment/"$K8S_DEPLOYMENT" \
@@ -894,10 +1103,10 @@ kubectl exec \
 success "Django environment verified"
 
 # ============================================================
-# 43. Verify RMS database connectivity
+# 50. Verify database again
 # ============================================================
 
-log "43. Verifying RMS database connectivity"
+log "49. Verifying RMS database connectivity"
 
 kubectl exec \
     -n "$K8S_NAMESPACE" \
@@ -907,10 +1116,10 @@ kubectl exec \
 success "RMS database connection verified"
 
 # ============================================================
-# 44. Run Django migrations
+# 51. Run migrations again
 # ============================================================
 
-log "44. Running Django migrations"
+log "50. Running Django migrations"
 
 kubectl exec \
     -n "$K8S_NAMESPACE" \
@@ -920,10 +1129,10 @@ kubectl exec \
 success "Django migrations completed"
 
 # ============================================================
-# 45. Create default Django superuser
+# 52. Create default superuser
 # ============================================================
 
-log "45. Creating default Django superuser"
+log "51. Creating default Django superuser"
 
 kubectl exec \
     -n "$K8S_NAMESPACE" \
@@ -931,22 +1140,34 @@ kubectl exec \
     -- python manage.py create_superuser_default
 
 success "Default Django superuser created/verified"
+# ============================================================
+# 53. Load sample data
+# ============================================================
+
+log "52. Loading sample data"
+
+kubectl exec \
+    -n "$K8S_NAMESPACE" \
+    deployment/"$K8S_DEPLOYMENT" \
+    -- python manage.py load_sample_data
+
+success "Sample data loaded successfully"
 
 # ============================================================
-# 46. Check RMS endpoints
+# 54. Check endpoints
 # ============================================================
 
-log "46. Checking RMS endpoints"
+log "53. Checking RMS endpoints"
 
 kubectl get endpoints \
     "$K8S_SERVICE" \
     -n "$K8S_NAMESPACE"
 
 # ============================================================
-# 47. Final Kubernetes status
+# 55. Final Kubernetes status
 # ============================================================
 
-log "47. Final Kubernetes status"
+log "54. Final Kubernetes status"
 
 echo
 echo "NODES"
@@ -984,10 +1205,10 @@ kubectl get deployments \
     -n "$K8S_NAMESPACE"
 
 # ============================================================
-# 48. Test RMS application
+# 56. Test RMS application
 # ============================================================
 
-log "48. Testing RMS application"
+log "55. Testing RMS application"
 
 echo
 echo "Testing:"
@@ -1033,7 +1254,7 @@ else
 fi
 
 # ============================================================
-# 49. Final result
+# 57. Final result
 # ============================================================
 
 echo
@@ -1074,7 +1295,7 @@ echo "             DEPLOYMENT SUCCESSFUL"
 echo "============================================================"
 
 # ============================================================
-# 50. Live RMS application logs
+# 58. Live RMS application logs
 # ============================================================
 
 echo

@@ -14,7 +14,7 @@ data:
 
   CSRF_TRUSTED_ORIGINS: "https://rent-management-system-1wyn.onrender.com,https://www.bikashgosain.com.np,https://bikashgosain.com.np"
 
-  EMAIL_HOST_USER: "bikashgosain0@gmail.com"
+  EMAIL_HOST_USER: "dev.brain08@gmail.com"
 
   GOOGLE_CLIENT_ID: "14664610456-a9sa2e5taevfrq43agip779713r8rafv.apps.googleusercontent.com"
 
