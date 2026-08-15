@@ -19,4 +19,5 @@ kubernetes/*secret.yml
 .env
 *.env
 
-Cred.txt
+Cred.txtdeploy.sh
+deploy.sh
