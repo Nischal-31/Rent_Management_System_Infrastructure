@@ -21,3 +21,8 @@ kubernetes/*secret.yml
 
 Cred.txt
 deploy.sh
+
+certs/*.key
+certs/*.crt
+certs/*.ca-bundle
+certs/*.p7b
